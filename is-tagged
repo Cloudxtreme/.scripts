@@ -1,0 +1,99 @@
+#!/usr/bin/python
+
+"""Check whether an MP3 file is tagged, and perform some operations
+
+Usage:
+    is-tagged [options] <path>
+
+Options:
+    -n                  Invert logic, and return success for files
+                        that are not tagged
+    --print             Print a list of files that are tagged
+                        (treats <path> as a directory and walks it)
+    --picard            Open files with MusicBrainz Picard
+"""
+
+import os
+import re
+import sys
+import subprocess
+
+from mutagen.mp3 import (
+    MP3,
+    InvalidMPEGHeader,
+    HeaderNotFoundError,
+)
+
+from docopt import docopt
+
+# Taken from flask_uuid: http://git.io/vmecV
+UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
+# Musicbrainz Recording ID
+# https://picard.musicbrainz.org/docs/mappings/
+ufid = u'UFID:http://musicbrainz.org'
+
+
+def is_tagged(file):
+    """
+    Determine whether an MP3 file is tagged.
+
+    TODO: Handle files other than mp3
+    """
+
+    try:
+        tags = MP3(file)
+    except (HeaderNotFoundError, InvalidMPEGHeader):
+        return False
+
+    if ufid not in tags:
+        return False
+    else:
+        return re.match(UUID_RE, tags[ufid].data) is not None
+
+
+if __name__ == '__main__':
+
+    """
+    Truth table for variables 'inv', 'is_tag' and output 'res'
+
+    inv | is_tag | res
+    -------------------
+     0  |    0   |  0
+     0  |    1   |  1
+     1  |    0   |  1
+     1  |    1   |  0
+
+    An XOR gate! That boolean algebra course was useful afterall.
+
+    file_is_tagged_untagged = (inv) XOR (is_tagged(file))
+    """
+
+    args = docopt(__doc__, version='is_tagged 0.8', options_first=True)
+
+    if args['--print'] or args['--picard']:
+        results = []
+        for root, _, files in os.walk(args['<path>']):
+            paths = [os.path.join(root, f) for f in files
+                     if f.endswith('mp3')]
+            results.extend([p for p in paths
+                            if args['-n'] ^ is_tagged(p)])
+
+        if args['--print']:
+            print('"' + '"\n"'.join(results) + '"')
+        elif args['--picard']:
+            # TODO: Allow user to pass correct path to Picard executable
+            command = ["/home/dufferzafar/dev/picard/tagger.py"]
+            command.extend(results)
+
+            with open(os.devnull, 'wb') as devnull:
+                subprocess.Popen(
+                    command,
+                    shell=False,
+                    stdout=devnull,
+                    stderr=devnull)
+    else:
+        tagged = args['-n'] ^ is_tagged(args['<path>'])
+        print(tagged)
+        sys.exit(int(tagged))
