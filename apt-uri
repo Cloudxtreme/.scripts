@@ -1,0 +1,62 @@
+#!/usr/bin/python3
+
+"""Print download URL of a package.
+
+Usage:
+    apt-uri [options] <package>
+
+Options:
+    -d                  Don't do any dependency resolution.
+    -n                  Ignore files that already exist in package cache.
+"""
+
+import os
+import sys
+import subprocess
+
+from docopt import docopt
+
+
+def humansize(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+def get_uri(package, dependencies=True, new=False):
+
+    output = subprocess.check_output([
+        "apt-get",
+        "--print-uris",
+        "-y",
+        "install" if dependencies else "download",
+        package
+    ])
+
+    # To print the total size of downloads
+    total = 0
+
+    for line in output.splitlines():
+        if line.startswith(b"'"):
+            url, deb, size, md5 = line.split()
+
+            # Skip, if the file already exists
+            if new and not os.path.exists("/var/cache/apt/archives/" + deb):
+                continue
+
+            # FIXME: Possible source of UnicodeDecodeError?
+            print(url[1:-1].decode('utf-8'))
+
+            total += int(size)
+
+    print("Total Download Size: %s" % humansize(total),
+        file=sys.stderr)
+
+
+if __name__ == '__main__':
+
+    args = docopt(__doc__, version='apt-uri 0.1', options_first=True)
+
+    get_uri(args['<package>'], dependencies=not args['-d'], new=args['-n'])
