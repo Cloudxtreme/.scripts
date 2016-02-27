@@ -1,0 +1,18 @@
+#!/usr/bin/python3
+
+import re
+import sys
+import pyquery
+
+
+def get_video_links(playlist_url):
+    pq = pyquery.PyQuery(url=playlist_url)
+    for link in pq('td.pl-video-title > a'):
+        print('# ' + link.text.strip())
+        url = re.sub(r'&list=[\w-]+', '', link.get('href'))
+        print('https://youtube.com' + url)
+        print()
+
+
+if __name__ == '__main__':
+    get_video_links(sys.argv[1])
