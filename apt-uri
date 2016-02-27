@@ -9,6 +9,12 @@ Options:
     -d                  Don't do any dependency resolution.
     -n                  Ignore files that already exist in package cache.
     -s                  Display size of the packages.
+
+Examples:
+
+    apt-uri 0ad
+
+    apt-uri -s 0ad | sort -h | tail -5 | cut -d" " -f 2
 """
 
 import os
