@@ -8,6 +8,7 @@ Usage:
 Options:
     -d                  Don't do any dependency resolution.
     -n                  Ignore files that already exist in package cache.
+    -s                  Display size of the packages.
 """
 
 import os
@@ -25,7 +26,7 @@ def humansize(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-def get_uri(package, dependencies=True, new=False):
+def main(package, dependencies=True, new=False, display_size=False):
 
     output = subprocess.check_output([
         "apt-get",
@@ -46,17 +47,27 @@ def get_uri(package, dependencies=True, new=False):
             if new and not os.path.exists("/var/cache/apt/archives/" + deb):
                 continue
 
+            if display_size:
+                print("%s " % humansize(int(size)), end="")
+
             # FIXME: Possible source of UnicodeDecodeError?
             print(url[1:-1].decode('utf-8'))
 
             total += int(size)
 
-    print("Total Download Size: %s" % humansize(total),
-        file=sys.stderr)
+    print(
+        "Total Download Size: %s" % humansize(total),
+        file=sys.stderr
+    )
 
 
 if __name__ == '__main__':
 
     args = docopt(__doc__, version='apt-uri 0.1', options_first=True)
 
-    get_uri(args['<package>'], dependencies=not args['-d'], new=args['-n'])
+    main(
+        args['<package>'],
+        dependencies=not args['-d'],
+        new=args['-n'],
+        display_size=args['-s']
+    )
