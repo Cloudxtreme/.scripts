@@ -1,5 +1,21 @@
 #!/usr/bin/python3
 
+"""Get Video links from a Youtube Playlist URL.
+
+The output is in a format that can be fed into youtube-dl via the -a switch.
+
+Examples:
+
+    ytb-links https://www.youtube.com/playlist?list=PL8B24C31197EC371C
+
+    ytb-links https://www.youtube.com/playlist?list=PL8B24C31197EC371C > playlist
+
+    You can then manually edit the playlist file and comment videos that you
+    don't want to download. After you're done just pass the list to youtube-dl
+
+    youtube-dl -a playlist
+"""
+
 import re
 import sys
 import pyquery
