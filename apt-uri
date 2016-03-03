@@ -3,12 +3,14 @@
 """Print download URL of a package.
 
 Usage:
-    apt-uri [options] <package>
+    apt-uri [options] [<packages>...]
 
 Options:
     -d                  Don't do any dependency resolution.
     -n                  Ignore files that already exist in package cache.
     -s                  Display size of the packages.
+
+    -u                  Print URIs of apt-get upgrade
 
 Examples:
 
@@ -32,15 +34,23 @@ def humansize(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-def main(package, dependencies=True, new=False, display_size=False):
+def main(packages,
+         upgrade=False,
+         dependencies=True,
+         new=False,
+         display_size=False):
 
-    output = subprocess.check_output([
+    sub_command = "upgrade" if upgrade else "install" if dependencies else "download"
+
+    command = [
         "apt-get",
         "--print-uris",
         "-y",
-        "install" if dependencies else "download",
-        package
-    ])
+        sub_command,
+    ]
+    command.extend(packages)
+
+    output = subprocess.check_output(command)
 
     # To print the total size of downloads
     total = 0
@@ -72,7 +82,8 @@ if __name__ == '__main__':
     args = docopt(__doc__, version='apt-uri 0.1', options_first=True)
 
     main(
-        args['<package>'],
+        packages=args['<packages>'],
+        upgrade=args['-u'],
         dependencies=not args['-d'],
         new=args['-n'],
         display_size=args['-s']
