@@ -8,8 +8,18 @@ Examples:
 """
 
 import sys
+import urllib.parse
+
+from multiprocessing.pool import ThreadPool
 
 import pyquery
+
+
+def url_fix(url):
+    scheme, netloc, path, qs, anchor = urllib.parse.urlsplit(url)
+    path = urllib.parse.quote(path, '/%')
+    qs = urllib.parse.quote_plus(qs, ':&=')
+    return urllib.parse.urlunsplit((scheme, netloc, path, qs, anchor))
 
 
 def get_links_from_track_page(track_url):
@@ -18,17 +28,24 @@ def get_links_from_track_page(track_url):
     for link in pq('div.download-trget a'):
         href = link.get('href')
         if href.endswith('mp3'):
-            print(href)
+            return href
 
 
 def get_links_from_albums_page(album_url):
     pq = pyquery.PyQuery(url=album_url)
 
+    urls = []
+
     for link in pq('div.download-trget a'):
         href = link.get('href')
         if '/songspk.city/downloads/' in href:
-            get_links_from_track_page(href)
+            urls.append(href)
 
+    pool = ThreadPool(processes=10)
+    results = pool.map(get_links_from_track_page, urls)
+
+    for url in results:
+        print(url_fix(url))
 
 if __name__ == '__main__':
     get_links_from_albums_page(sys.argv[1])
