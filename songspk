@@ -22,30 +22,20 @@ def url_fix(url):
     return urllib.parse.urlunsplit((scheme, netloc, path, qs, anchor))
 
 
-def get_links_from_track_page(track_url):
-    pq = pyquery.PyQuery(url=track_url)
-
-    for link in pq('div.download-trget a'):
-        href = link.get('href')
-        if href.endswith('mp3'):
-            return href
+def get_links_from_page(page_url):
+    pq = pyquery.PyQuery(url=page_url)
+    return [url_fix(a.get('href')) for a in pq('div.download-trget a')]
 
 
 def get_links_from_albums_page(album_url):
-    pq = pyquery.PyQuery(url=album_url)
-
-    urls = []
-
-    for link in pq('div.download-trget a'):
-        href = link.get('href')
-        if '/songspk.city/downloads/' in href:
-            urls.append(href)
+    urls = [
+        url for url in get_links_from_page(album_url)
+        if '/songspk.city/downloads/' in url
+    ]
 
     pool = ThreadPool(processes=10)
-    results = pool.map(get_links_from_track_page, urls)
-
-    for url in results:
-        print(url_fix(url))
+    for result in pool.imap_unordered(get_links_from_page, urls):
+        print("\n".join((url for url in result if url.endswith('.mp3'))))
 
 if __name__ == '__main__':
     get_links_from_albums_page(sys.argv[1])
