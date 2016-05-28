@@ -1,0 +1,40 @@
+#!/usr/bin/python
+
+"""
+Calculate fare for Delhi autos.
+
+Usage: auto_fare [--night] <km> [<wait>]
+"""
+
+from docopt import docopt
+
+
+def auto_fare(km, wait=0, night=False):
+    """
+    Calculate fare for Delhi autos.
+
+    Rules taken from: http://www.delhitourism.gov.in/delhitourism/transport/autos.jsp
+    """
+
+    try:
+        km = float(km)
+    except ValueError:
+        raise ValueError("Kilometers should be integers!")
+
+    fare = (25 + 8 * (km - 2))
+
+    if night:
+        fare = 1.25 * fare
+
+    return fare
+
+if __name__ == '__main__':
+
+    args = docopt(__doc__)
+
+    print(
+        "Rs. %d" % auto_fare(
+            km=args['<km>'],
+            night=args['--night'],
+        )
+    )
